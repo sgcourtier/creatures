@@ -6,6 +6,10 @@
   var t = 0;
   var dt = 1;
 
+  function rect(radius, angle) {
+    return [radius * Math.cos(angle), radius * Math.sin(angle)];
+  }
+
   function buildSimState(numFood, numCreatures) {
     function rndPos(rMax) {
       var rndRadius = Math.sqrt(Math.random()) * rMax;
@@ -37,7 +41,9 @@
                            speed: 5,
                            orient: 2 * Math.PI * Math.random(),
                            angVel: 0,
-                           energy: 10
+                           energy: 10,
+                           viewRange: 60,
+                           viewSpan: 1
                           };
             
       simState.creatureStates.push(creatureState);
@@ -48,10 +54,6 @@
 
   function advance(simState, dt) {
     function advanceCreature(creatureState) {
-      function rect(radius, angle) {
-        return [radius * Math.cos(angle), radius * Math.sin(angle)];
-      }
-
       var vel = rect(creatureState.speed, creatureState.orient);
 
       njs.addeq(creatureState.pos,
@@ -74,13 +76,26 @@
       ctx.stroke();
     }
     function renderCreatureState(creatureState) {
+      var x = creatureState.pos[0];
+      var y = creatureState.pos[1];
+      
+      // Render body
       ctx.beginPath();
-      ctx.arc(creatureState.pos[0], creatureState.pos[1],
-              creatureState.radius, 0, 2 * Math.PI);
+      ctx.arc(x, y, creatureState.radius, 0, 2 * Math.PI);
       ctx.fillStyle = 'red';
       ctx.strokeStyle = 'black';
       ctx.fill();
       ctx.stroke();
+
+      // Render view
+      var leftAngle = creatureState.orient + creatureState.viewSpan / 2;
+      var rightAngle = creatureState.orient - creatureState.viewSpan / 2;
+
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.arc(x, y, creatureState.viewRange, rightAngle, leftAngle);
+      ctx.fillStyle = "rgba(0, 100, 255, 0.4)";
+      ctx.fill();
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
