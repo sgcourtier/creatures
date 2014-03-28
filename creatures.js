@@ -6,21 +6,13 @@
   var dt = 1;
 
   function buildSimState(numFood) {
-    function rndPos() {
-      var rndRadius = Math.sqrt(Math.random()) * simState.radius;
+    function rndPos(rMax) {
+      var rndRadius = Math.sqrt(Math.random()) * rMax;
       var rndAngle =  Math.random() * 2 * Math.PI;
-      var rndx = simState.radius + rndRadius * Math.cos(rndAngle);
-      var rndy = simState.radius + rndRadius * Math.sin(rndAngle);
+      var rndx = rMax + rndRadius * Math.cos(rndAngle);
+      var rndy = rMax + rndRadius * Math.sin(rndAngle);
       
       return {x:rndx, y:rndy};
-    }
-    function buildFoodState() {
-      var foodState = {radius: 5,
-                       pos: rndPos(),
-                       energy: 10
-                      };
-
-      return foodState;
     }
     
     var simState = {};
@@ -28,10 +20,23 @@
     simState.radius = 300;
     
     simState.foodStates = [];
-    for (var i = 0; i < numFood; i++) {
-      var foodState = buildFoodState();
+    for (var fsIdx = 0; fsIdx < numFood; fsIdx++) {
+      var foodState = {radius: 5,
+                       pos: rndPos(simState.radius),
+                       energy: 10
+                      };
             
       simState.foodStates.push(foodState);
+    }
+
+    simState.creatureStates = [];
+    for (var csIdx = 0; csIdx < numFood; csIdx++) {
+      var creatureState = {radius: 15,
+                           pos: rndPos(simState.radius),
+                           energy: 10
+                          };
+            
+      simState.creatureStates.push(creatureState);
     }
     
     return simState;
@@ -47,11 +52,24 @@
       ctx.fill();
       ctx.stroke();
     }
+    function renderCreatureState(creatureState) {
+      ctx.beginPath();
+      ctx.arc(creatureState.pos.x, creatureState.pos.y, creatureState.radius,
+              0, 2 * Math.PI);
+      ctx.fillStyle = 'red';
+      ctx.strokeStyle = 'black';
+      ctx.fill();
+      ctx.stroke();
+    }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     for (var i = 0; i < simState.foodStates.length; i++) {
       renderFoodState(simState.foodStates[i]);
+    }
+    
+    for (var i = 0; i < simState.creatureStates.length; i++) {
+      renderCreatureState(simState.creatureStates[i]);
     }
   }
 
