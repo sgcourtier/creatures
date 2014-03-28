@@ -34,6 +34,9 @@
     for (var csIdx = 0; csIdx < numCreatures; csIdx++) {
       var creatureState = {radius: 15,
                            pos: rndPos(simState.radius),
+                           speed: 5,
+                           orient: 2 * Math.PI * Math.random(),
+                           angVel: 0,
                            energy: 10
                           };
             
@@ -44,8 +47,15 @@
   }
 
   function advance(simState, dt) {
-    function advanceCreature(creature) {
-      creature.radius = creature.radius * 1.001;
+    function advanceCreature(creatureState) {
+      function rect(radius, angle) {
+        return [radius * Math.cos(angle), radius * Math.sin(angle)];
+      }
+
+      var vel = rect(creatureState.speed, creatureState.orient);
+
+      njs.addeq(creatureState.pos,
+                njs.dot(vel, dt));
     }
 
     for (var csIdx = 0; csIdx < simState.creatureStates.length; csIdx++) {
