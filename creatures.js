@@ -6,7 +6,7 @@
   var t = 0;
   var dt = 1;
 
-  function rect(radius, angle) {
+  function polarToRect(radius, angle) {
     return [radius * Math.cos(angle), radius * Math.sin(angle)];
   }
 
@@ -38,7 +38,8 @@
     for (var csIdx = 0; csIdx < numCreatures; csIdx++) {
       var creatureState = {radius: 15,
                            pos: rndPos(simState.radius),
-                           speed: 5,
+                           speed: 0,
+                           speedMax: 1,
                            orient: 2 * Math.PI * Math.random(),
                            angVel: 0,
                            energy: 10,
@@ -54,10 +55,13 @@
 
   function advance(simState, dt) {
     function advanceCreature(creatureState) {
-      var vel = rect(creatureState.speed, creatureState.orient);
+      var vel = polarToRect(creatureState.speed, creatureState.orient);
 
-      njs.addeq(creatureState.pos,
-                njs.dot(vel, dt));
+      njs.addeq(creatureState.pos, njs.dot(vel, dt));
+      creatureState.speed = (Math.random() * creatureState.speedMax) * dt;
+
+      creatureState.orient += (0.1 * (Math.random() - 0.5)) * dt;
+      creatureState.orient = creatureState.orient % (2 * Math.PI);
     }
 
     for (var csIdx = 0; csIdx < simState.creatureStates.length; csIdx++) {
