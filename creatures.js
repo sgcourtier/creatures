@@ -56,14 +56,39 @@
   function advance(simState, dt) {
     function advanceCreature(creatureState) {
       var vel = polarToRect(creatureState.speed, creatureState.orient);
-
+      
       njs.addeq(creatureState.pos, njs.dot(vel, dt));
       creatureState.speed = (Math.random() * creatureState.speedMax) * dt;
 
       creatureState.orient += (0.1 * (Math.random() - 0.5)) * dt;
       creatureState.orient = creatureState.orient % (2 * Math.PI);
-    }
 
+      // Check boundary.
+      // TODO: Clean this up a bit.
+      // TODO: This doesn't work right. Try:
+      //       1. Get vector between center and pos.
+      //       2. Convert it to polar.
+      //       3. Check if radial component is too big.
+      //       4. If so, shorten it and reposition accordingly.
+      var x = creatureState.pos[0];
+      var y = creatureState.pos[1];
+      var xdispLim = Math.sqrt(2 * simState.radius * y - y * y);
+      var ydispLim = Math.sqrt(2 * simState.radius * x - x * x);
+      
+      if (x > simState.radius + xdispLim) {
+        creatureState.pos[0] = simState.radius + xdispLim;
+      }
+      if (x < simState.radius - xdispLim) {
+        creatureState.pos[0] = simState.radius - xdispLim;
+      }
+      if (y > simState.radius + ydispLim) {
+        creatureState.pos[1] = simState.radius + ydispLim;
+      }
+      if (y < simState.radius - ydispLim) {
+        creatureState.pos[1] = simState.radius - ydispLim;
+      }
+    }
+      
     for (var csIdx = 0; csIdx < simState.creatureStates.length; csIdx++) {
       advanceCreature(simState.creatureStates[csIdx]);
     }
