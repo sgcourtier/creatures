@@ -6,8 +6,18 @@
   var t = 0;
   var dt = 1;
 
-  function polarToRect(radius, angle) {
-    return [radius * Math.cos(angle), radius * Math.sin(angle)];
+  function rectToPolar(vec) {
+    var radius = njs.norm2(vec);
+    var angle = Math.atan2(vec[1], vec[0]);
+
+    return [radius, angle];
+  }
+  
+  function polarToRect(vec) {
+    var x = vec[0] * Math.cos(vec[1]);
+    var y = vec[0] * Math.sin(vec[1]);
+    
+    return [x, y];
   }
 
   function buildSimState(numFood, numCreatures) {
@@ -42,6 +52,7 @@
                            speedMax: 1,
                            orient: 2 * Math.PI * Math.random(),
                            angVel: 0,
+                           angVelMax: 0.1,
                            energy: 10,
                            viewRange: 60,
                            viewSpan: 1
@@ -55,37 +66,33 @@
 
   function advance(simState, dt) {
     function advanceCreature(creatureState) {
-      var vel = polarToRect(creatureState.speed, creatureState.orient);
-      
-      njs.addeq(creatureState.pos, njs.dot(vel, dt));
-      creatureState.speed = (Math.random() * creatureState.speedMax) * dt;
+      var vel = polarToRect([creatureState.speed, creatureState.orient]);
 
-      creatureState.orient += (0.1 * (Math.random() - 0.5)) * dt;
+      creatureState.orient += creatureState.angVel * dt;
       creatureState.orient = creatureState.orient % (2 * Math.PI);
+      njs.addeq(creatureState.pos, njs.dot(vel, dt));
+      
+      creatureState.speed += Math.random() * dt;
+      creatureState.angVel += 0.1 * (Math.random() - 0.5) * dt;
+
+      // Enforce motion limits
+      if (creatureState.speed > creatureState.speedMax) {
+        creatureState.speed = creatureState.speedMax;
+      }
+      if (creatureState.angVel < -creatureState.angVelMax) {
+        creatureState.angVel = -creatureState.angVelMax;
+      }
+      if (creatureState.angVel > creatureState.angVelMax) {
+        creatureState.angVel = creatureState.angVelMax;
+      }
 
       // Check boundary.
-      // TODO: Clean this up a bit.
-      // TODO: This doesn't work right. Try:
-      //       1. Get vector between center and pos.
-      //       2. Convert it to polar.
-      //       3. Check if radial component is too big.
-      //       4. If so, shorten it and reposition accordingly.
-      var x = creatureState.pos[0];
-      var y = creatureState.pos[1];
-      var xdispLim = Math.sqrt(2 * simState.radius * y - y * y);
-      var ydispLim = Math.sqrt(2 * simState.radius * x - x * x);
-      
-      if (x > simState.radius + xdispLim) {
-        creatureState.pos[0] = simState.radius + xdispLim;
-      }
-      if (x < simState.radius - xdispLim) {
-        creatureState.pos[0] = simState.radius - xdispLim;
-      }
-      if (y > simState.radius + ydispLim) {
-        creatureState.pos[1] = simState.radius + ydispLim;
-      }
-      if (y < simState.radius - ydispLim) {
-        creatureState.pos[1] = simState.radius - ydispLim;
+      var center = [simState.radius, simState.radius];
+      var disp = njs.sub(creatureState.pos, center);
+      var dispPolar = rectToPolar(disp);
+      if (dispPolar[0] > simState.radius) {
+        dispPolar[0] = simState.radius;
+        creatureState.pos = njs.add(center, polarToRect(dispPolar));
       }
     }
       
@@ -111,7 +118,7 @@
       // Render body
       ctx.beginPath();
       ctx.arc(x, y, creatureState.radius, 0, 2 * Math.PI);
-      ctx.fillStyle = 'red';
+      ctx.fillStyle = 'black';
       ctx.strokeStyle = 'black';
       ctx.fill();
       ctx.stroke();
@@ -123,7 +130,7 @@
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.arc(x, y, creatureState.viewRange, rightAngle, leftAngle);
-      ctx.fillStyle = "rgba(0, 100, 255, 0.4)";
+      ctx.fillStyle = "rgba(255, 0, 0, 0.4)";
       ctx.fill();
     }
 
