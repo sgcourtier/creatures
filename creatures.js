@@ -1,3 +1,7 @@
+// TODO: Modularize
+// NOTE: Right now, ties are settled by place in the array. This is fine as long as the place is randomized for successive trials.
+
+
 (function(parent) {
   var njs = numeric;
   var canvas = document.getElementById('canvas');
@@ -46,16 +50,17 @@
 
     simState.creatureStates = [];
     for (var csIdx = 0; csIdx < numCreatures; csIdx++) {
-      var creatureState = {radius: 15,
-                           pos: rndPos(simState.radius),
+      var radius = Math.random() * 15 + 2
+      var creatureState = {radius: radius,
+                           pos: [simState.radius, simState.radius],
                            speed: 0,
-                           speedMax: 1,
+                           speedMax: 2,
                            orient: 2 * Math.PI * Math.random(),
                            angVel: 0,
                            angVelMax: 0.1,
                            energy: 10,
-                           viewRange: 60,
-                           viewSpan: 1
+                           viewRange: Math.random() * 75 + radius,
+                           viewSpan: Math.random() * 2.5 + 0.5
                           };
             
       simState.creatureStates.push(creatureState);
@@ -66,18 +71,40 @@
 
   function advance(simState, dt) {
     function advanceCreature(creatureState) {
-      var vel = polarToRect([creatureState.speed, creatureState.orient]);
+      // Normalize orientation
+      // TODO: Do this less retardedly.
+      var qrect = polarToRect([1, creatureState.orient]);
+      var qpolar = rectToPolar(qrect);
+      creatureState.orient = qpolar[1];
+      
+      // Eat food in view
+      for (var fdIdx = 0; fdIdx < simState.foodStates.length; fdIdx++) {
+        var foodState = simState.foodStates[fdIdx];
+        var disp = njs.sub(foodState.pos, creatureState.pos);
+        var dispPolar = rectToPolar(disp);
+        var alpha = creatureState.viewSpan / 2;
+        var inRange = dispPolar[0] <= creatureState.viewRange;
+        var inSpan = (creatureState.orient - alpha <= dispPolar[1]) &&
+              (dispPolar[1] <= creatureState.orient + alpha);
+        if (inRange && inSpan) {
+          simState.foodStates.splice(fdIdx, 1);
+          fdIdx--;
+        }
+      }
 
       creatureState.orient += creatureState.angVel * dt;
-      creatureState.orient = creatureState.orient % (2 * Math.PI);
+      var vel = polarToRect([creatureState.speed, creatureState.orient]);
       njs.addeq(creatureState.pos, njs.dot(vel, dt));
       
-      creatureState.speed += Math.random() * dt;
+      creatureState.speed += (Math.random() - 0.5) * dt;
       creatureState.angVel += 0.1 * (Math.random() - 0.5) * dt;
 
       // Enforce motion limits
       if (creatureState.speed > creatureState.speedMax) {
         creatureState.speed = creatureState.speedMax;
+      }
+      if (creatureState.speed < 0) {
+        creatureState.speed = 0;
       }
       if (creatureState.angVel < -creatureState.angVelMax) {
         creatureState.angVel = -creatureState.angVelMax;
