@@ -1,8 +1,9 @@
+// TODO: 'Bout time to refactor---all the basic sim features are in place.
 // TODO: Modularize
 // NOTE: Right now, ties are settled by place in the array. This is fine as long as the place is randomized for successive trials.
 
-
 (function(parent) {
+  
   var njs = numeric;
   var canvas = document.getElementById('canvas');
   var ctx = canvas.getContext('2d');
@@ -24,16 +25,16 @@
     return [x, y];
   }
 
-  function buildSimState(numFood, numCreatures) {
-    function rndPos(rMax) {
-      var rndRadius = Math.sqrt(Math.random()) * rMax;
-      var rndAngle =  Math.random() * 2 * Math.PI;
-      var rndx = rMax + rndRadius * Math.cos(rndAngle);
-      var rndy = rMax + rndRadius * Math.sin(rndAngle);
-      
-      return [rndx, rndy];
-    }
+  function rndPos(rMax) {
+    var rndRadius = Math.sqrt(Math.random()) * rMax;
+    var rndAngle =  Math.random() * 2 * Math.PI;
+    var rndx = rMax + rndRadius * Math.cos(rndAngle);
+    var rndy = rMax + rndRadius * Math.sin(rndAngle);
     
+    return [rndx, rndy];
+  }
+
+  function buildSimState(numFood, numCreatures) {
     var simState = {};
     
     simState.radius = 300;
@@ -42,15 +43,15 @@
     for (var fsIdx = 0; fsIdx < numFood; fsIdx++) {
       var foodState = {radius: 5,
                        pos: rndPos(simState.radius),
-                       energy: 10
+                       energy: 1e6
                       };
-            
+      
       simState.foodStates.push(foodState);
     }
 
     simState.creatureStates = [];
     for (var csIdx = 0; csIdx < numCreatures; csIdx++) {
-      var radius = Math.random() * 15 + 2
+      var radius = Math.random() * 15 + 2;
       var creatureState = {radius: radius,
                            pos: [simState.radius, simState.radius],
                            speed: 0,
@@ -58,11 +59,12 @@
                            orient: 2 * Math.PI * Math.random(),
                            angVel: 0,
                            angVelMax: 0.1,
-                           energy: 10,
                            viewRange: Math.random() * 75 + radius,
-                           viewSpan: Math.random() * 2.5 + 0.5
+                           viewSpan: Math.random() * 2.5 + 0.5,
+                           energy: 1.5e6,
+                           lifetime: 0
                           };
-            
+      
       simState.creatureStates.push(creatureState);
     }
     
@@ -71,6 +73,8 @@
 
   function advance(simState, dt) {
     function advanceCreature(creatureState) {
+      creatureState.lifetime += dt;
+      
       // Normalize orientation
       // TODO: Do this less retardedly.
       var qrect = polarToRect([1, creatureState.orient]);
@@ -87,11 +91,20 @@
         var inSpan = (creatureState.orient - alpha <= dispPolar[1]) &&
               (dispPolar[1] <= creatureState.orient + alpha);
         if (inRange && inSpan) {
+          creatureState.energy += simState.foodStates[fdIdx].energy;
           simState.foodStates.splice(fdIdx, 1);
           fdIdx--;
         }
       }
 
+      // Update energy
+      creatureState.energy -= 2 * Math.pow(creatureState.radius, 2) * dt;
+      creatureState.energy -=
+        (creatureState.speed + creatureState.angVel) * dt;
+      creatureState.energy -= creatureState.viewSpan *
+        Math.pow(creatureState.viewRange, 2) * dt;
+      
+      // Update position
       creatureState.orient += creatureState.angVel * dt;
       var vel = polarToRect([creatureState.speed, creatureState.orient]);
       njs.addeq(creatureState.pos, njs.dot(vel, dt));
@@ -122,9 +135,14 @@
         creatureState.pos = njs.add(center, polarToRect(dispPolar));
       }
     }
-      
+
+    
     for (var csIdx = 0; csIdx < simState.creatureStates.length; csIdx++) {
-      advanceCreature(simState.creatureStates[csIdx]);
+      var creatureState = simState.creatureStates[csIdx];
+      
+      if (creatureState.energy >  0) {
+        advanceCreature(creatureState);
+      }
     }
   }
 
@@ -145,8 +163,8 @@
       // Render body
       ctx.beginPath();
       ctx.arc(x, y, creatureState.radius, 0, 2 * Math.PI);
-      ctx.fillStyle = 'black';
-      ctx.strokeStyle = 'black';
+      ctx.fillStyle = creatureState.energy > 0 ? 'black' : "rgba(100, 200, 100, 0.3)";
+      ctx.strokeStyle = creatureState.energy > 0 ? 'black' : 'gray';
       ctx.fill();
       ctx.stroke();
 
@@ -157,7 +175,8 @@
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.arc(x, y, creatureState.viewRange, rightAngle, leftAngle);
-      ctx.fillStyle = "rgba(255, 0, 0, 0.4)";
+      ctx.fillStyle = creatureState.energy > 0 ? "rgba(255, 0, 0, 0.4)" :
+        "rgba(100, 150, 100, 0.15)";
       ctx.fill();
     }
 
