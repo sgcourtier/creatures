@@ -1,29 +1,63 @@
+// BUG: Ocassionally it looks like creatures take too long to eat food in their view.
+
 var entities = {};
 
 var njs = numeric;
 var util = utility;
 
+// Food params
+entities.foodParams = {radiusMean: 4,
+                       radiusVariance: 2,
+                       foodEnergyPerArea: 1e6
+                      };
+
+// Creature params
+entities.creatureParams = {radiusMean: 12,
+                           radiusVariance: 11,
+                           viewRangeMean: 30,
+                           viewRangeVariance: 700,
+                           viewSpanMean: Math.PI / 4,
+                           viewSpanVariance: 4,
+                           speedMaxCoef: 4e2,
+                           angVelMaxCoef: 15,
+                           energyMaxPerArea: 7e3,
+                           energyLossPerArea: 1.5,
+                           energyLossPerViewArea: 0.1,
+                           energyLossPerMove: 1e3
+                          };
+
 entities.generateFood = function(radius) {
-  var food = {radius: 5,
+  var params = entities.foodParams;
+  var rndRadius = util.rnorm(params.radiusMean, params.radiusVariance, 1);
+  var area = Math.PI * rndRadius * rndRadius;
+  var food = {radius: rndRadius,
               pos: util.rndPos(radius),
-              energy: 1e6
+              energy: params.foodEnergyPerArea * area
              };
 
   return food;
 };
 
 entities.generateCreature = function(pos) {
-  var rndRadius = Math.random() * 15 + 2;
+  var params = entities.creatureParams;
+  var rndRadius = util.rnorm(params.radiusMean, params.radiusVariance, 5);
+  var area = util.diskArea(rndRadius);
+  var energyMax = area * params.energyMaxPerArea;
+  
   var creature = {radius: rndRadius,
+                  viewRange: util.rnorm(rndRadius + params.viewRangeMean,
+                                        params.viewRangeVariance, 1),
+                  viewSpan: util.rnorm(params.viewSpanMean,
+                                       params.viewSpanVariance,
+                                       1, 2 * Math.PI),
                   pos: pos,
                   speed: 0,
-                  speedMax: 2,
+                  speedMax: params.speedMaxCoef / (1 + area),
                   orient: 2 * Math.PI * Math.random(),
                   angVel: 0,
-                  angVelMax: 0.1,
-                  viewRange: Math.random() * 75 + rndRadius,
-                  viewSpan: Math.random() * 2.5 + 0.5,
-                  energy: 1.5e6,
+                  angVelMax: params.angVelMaxCoef / (1 + area),
+                  energy: energyMax / 2,
+                  energyMax: energyMax,
                   lifetime: 0
                  };
 
@@ -43,7 +77,6 @@ entities.eat = function(creature, foods) {
     if (inRange && inSpan) {
       creature.energy += foods[fdIdx].energy;
       foods.splice(fdIdx, 1);
-      
       fdIdx--;
     }
   }
@@ -61,8 +94,9 @@ entities.advancePos = function(creature, dt) {
   var vel = util.polarToRect([creature.speed, creature.orient]);
   njs.addeq(creature.pos, njs.dot(vel, dt));
   
-  creature.speed += (Math.random() - 0.5) * dt;
-  creature.angVel += 0.1 * (Math.random() - 0.5) * dt;
+  creature.speed += util.rnorm(creature.speedMax / 2,
+                               creature.speedMax) * dt;
+  creature.angVel += 2 * creature.angVelMax * (Math.random() - 0.5) * dt;
 
   // Enforce speed limits
   if (creature.speed > creature.speedMax) {
@@ -80,9 +114,18 @@ entities.advancePos = function(creature, dt) {
 };
 
 entities.advanceEnergy = function(creature, dt) {
-  creature.energy -= 2 * Math.pow(creature.radius, 2) * dt;
-  creature.energy -= (creature.speed + creature.angVel) * dt;
-  creature.energy -= creature.viewSpan * Math.pow(creature.viewRange, 2) * dt;
+  var params = entities.creatureParams;
+  
+  creature.energy -= params.energyLossPerArea *
+    util.diskArea(creature.radius) * dt;
+  creature.energy -= params.energyLossPerViewArea *
+    creature.viewSpan * Math.pow(creature.viewRange, 2) * dt;
+  creature.energy -= params.energyLossPerMove *
+    (creature.speed + creature.angVel) * dt;
+
+  if (creature.energy > creature.energyMax) {
+    creature.energy = creature.energyMax;
+  }
 };
 
 entities.advance = function(creature, foods, dt) {

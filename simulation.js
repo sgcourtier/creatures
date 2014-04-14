@@ -4,21 +4,22 @@ var njs = numeric;
 var util = utility;
 var ent = entities;
 
-simulation.generate = function(numFood, numCreatures) {
+simulation.radius = 400;
+
+simulation.populate = function(numFood, numCreatures) {
   var sim = {};
-  
-  sim.radius = 300;
   
   sim.foods = [];
   for (var fsIdx = 0; fsIdx < numFood; fsIdx++) {
-    var food = ent.generateFood(sim.radius);
+    var food = ent.generateFood(simulation.radius);
     
     sim.foods.push(food);
   }
 
   sim.creatures = [];
   for (var csIdx = 0; csIdx < numCreatures; csIdx++) {
-    var creature = ent.generateCreature([sim.radius, sim.radius]);
+    var creature = ent.generateCreature([simulation.radius,
+                                         simulation.radius]);
     
     sim.creatures.push(creature);
   }
@@ -35,11 +36,11 @@ simulation.advance = function(sim, dt) {
       ent.advance(creature, sim.foods, dt);
 
       // Enforce boundary
-      var center = [sim.radius, sim.radius];
+      var center = [simulation.radius, simulation.radius];
       var disp = njs.sub(creature.pos, center);
       var dispPolar = util.rectToPolar(disp);
-      if (dispPolar[0] > sim.radius) {
-        dispPolar[0] = sim.radius;
+      if (dispPolar[0] > simulation.radius) {
+        dispPolar[0] = simulation.radius;
         creature.pos = njs.add(center, util.polarToRect(dispPolar));
       }
     }

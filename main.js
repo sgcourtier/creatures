@@ -10,7 +10,7 @@ var fps = 60;
 var t = 0;
 var dt = 1;
 
-var sim = simu.generate(100, 20);
+var sim = simu.populate(300, 12);
 
 function loop() {
   t += dt;
