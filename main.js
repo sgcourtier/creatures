@@ -8,9 +8,9 @@ var rend = rendering;
 
 var fps = 60;
 var t = 0;
-var dt = 1;
+var dt = 10;
 
-var sim = simu.populate(300, 12);
+var sim = simu.generate(300, 12);
 
 function loop() {
   t += dt;

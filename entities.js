@@ -1,4 +1,4 @@
-// BUG: Ocassionally it looks like creatures take too long to eat food in their view.
+// NOTE: Sometimes it looks like there is a bug---that creatures aren't eating the food in their view. This is because they're full.
 
 var entities = {};
 
@@ -20,9 +20,9 @@ entities.creatureParams = {radiusMean: 12,
                            viewSpanVariance: 4,
                            speedMaxCoef: 4e2,
                            angVelMaxCoef: 15,
-                           energyMaxPerArea: 7e3,
+                           energyMaxPerArea: 5e3,
                            energyLossPerArea: 1.5,
-                           energyLossPerViewArea: 0.1,
+                           energyLossPerViewArea: 0.05,
                            energyLossPerMove: 1e3
                           };
 

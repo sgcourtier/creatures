@@ -6,7 +6,7 @@ var ent = entities;
 
 simulation.radius = 400;
 
-simulation.populate = function(numFood, numCreatures) {
+simulation.generate = function(numFood, numCreatures) {
   var sim = {};
   
   sim.foods = [];
