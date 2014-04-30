@@ -5,6 +5,29 @@ var environment = {
   foods: [],
   creatures: []
 };
+environment.isActive = function() {
+  var result = false;
+  
+  for (var csIdx = 0; csIdx < this.creatures.length; csIdx++) {
+    if (this.creatures[csIdx].energy > 0) {
+      result = true;
+      break;
+    };
+  }
+  
+  return result;
+};
+environment.rankCreatures = function() {
+  function compare(creature1, creature2) {
+    if (creature1.lifetime > creature2.lifetime)
+      return -1;
+    if (creature1.lifetime < creature2.lifetime)
+      return 1;
+    return 0;
+  }
+  
+  this.creatures.sort(compare);
+};
 environment.randomizedFood = function(params) {
   var food = new Food(util.rndPos(this.radius));
   
@@ -15,7 +38,8 @@ environment.randomizedFood = function(params) {
   return food;
 };
 environment.randomizedCreature = function(params) {
-  var creature = new Creature([this.radius, this.radius]);
+  //var creature = new Creature([this.radius, this.radius]);
+  var creature = new Creature(util.rndPos(this.radius));
 
   creature.energy = creature.energyMax() / 2;
   creature.orient = 2 * Math.PI * Math.random();
@@ -34,6 +58,10 @@ environment.randomizedCreature = function(params) {
   creature.energyLossPerMove = params.energyLossPerMove;
   
   return creature;
+};
+environment.init = function() {
+  this.foods = [];
+  this.creatures = [];
 };
 environment.populate = function(foodParams, creatureParams,
                                 numFoods, numCreatures) {

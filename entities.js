@@ -65,7 +65,7 @@ Creature.prototype.eat = function(foods) {
 };
 Creature.prototype.deplete = function(dt) {
   this.energy -= this.energyLossPerArea * this.area() * dt;
-  this.energy -= this.energyLossPerViewArea * this.viewSpan *
+  this.energy -= this.energyLossPerViewArea * this.viewSpan / 2 *
     Math.pow(this.viewRange, 2) * dt;
   this.energy -= this.energyLossPerMove * (this.speed + this.angVel) * dt;
 

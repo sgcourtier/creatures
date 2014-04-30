@@ -2,7 +2,8 @@
 
 var fps = 60;
 var t = 0;
-var dt = 10;
+var dt = 20;
+var schedule = 1;
 
 var foodParams = {radiusMean: 4,
                   radiusVariance: 2,
@@ -19,15 +20,41 @@ var creatureParams = {radiusMean: 12,
                       angVelMaxCoef: 15,
                       energyMaxPerArea: 2.5e3,
                       energyLossPerArea: 1.5,
-                      energyLossPerViewArea: 0.05,
-                      energyLossPerMove: 1e3
+                      energyLossPerViewArea: 1,
+                      energyLossPerMove: 1e2
                      };
 environment.populate(foodParams, creatureParams, 400, 15);
 
 function loop() {
   t += dt;
 
-  environment.update(dt);
+  if (schedule < 0) {
+    clearInterval(1)
+  }
+
+  if (environment.isActive()) {
+    environment.update(dt);
+  } else {
+    environment.rankCreatures();
+
+    var pickIdx = Math.floor(environment.creatures.length *
+                             schedule * Math.random());
+    
+    console.log({bestlife: environment.creatures[0].lifetime,
+                 annealtemp:schedule,
+                 pick:pickIdx});
+
+    var pick = environment.creatures[pickIdx];
+    creatureParams.radiusMean = pick.radius;
+    creatureParams.viewRangeMean = pick.viewRange;
+    creatureParams.viewSpanMean = pick.viewSpan;
+
+    environment.init();
+    environment.populate(foodParams, creatureParams, 400, 15);
+
+    schedule *= 0.9;
+  }
+
   renderer.renderEnvironment(environment);
 }
 
